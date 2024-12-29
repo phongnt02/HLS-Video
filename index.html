@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Video Player</title>
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/utils.css">
+    <link rel="stylesheet" href="styles/components/player.css">
+    <link rel="stylesheet" href="styles/components/controls.css">
+</head>
+<body>
+    <div class="player-container">
+        <!-- Video Player Section -->
+        <div class="video-wrapper">
+            <video id="video"></video>
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            
+            <!-- Modern Video Controls -->
+            <div class="video-controls">
+                <!-- Progress Bar -->
+                <div class="progress-container">
+                    <!-- Buffer Progress -->
+                    <div class="buffer-bar"></div>
+                    <!-- Play Progress -->
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                    </div>
+                    <!-- Time Tooltip -->
+                    <div class="time-tooltip">00:00</div>
+                </div>
+                
+                <!-- Control Buttons -->
+                <div class="controls-main">
+                    <div class="controls-left">
+                        <button class="control-button" id="play-button" title="Play">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="control-button" id="rewind-button" title="Rewind 10s">
+                            <i class="fas fa-rotate-left"></i>
+                        </button>
+                        <button class="control-button" id="forward-button" title="Forward 10s">
+                            <i class="fas fa-rotate-right"></i>
+                        </button>
+                        <div class="volume-control">
+                            <button class="control-button" id="mute-button">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                            <div class="volume-slider-container">
+                                <input type="range" class="volume-slider" min="0" max="100" value="100">
+                            </div>
+                        </div>
+                        <div class="time-display">
+                            <span class="current-time">0:00</span>
+                            <span class="time-separator">/</span>
+                            <span class="duration">0:00</span>
+                        </div>
+                    </div>
+
+                    <div class="controls-right">
+                        <button class="control-button" id="pip-button" title="Picture in Picture">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                        <button class="control-button" id="fullscreen-button" title="Fullscreen">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monitoring Section -->
+        <div class="monitoring-section">
+            <div class="monitoring-controls">
+                <select id="quality-selector" class="quality-selector">
+                    <option value="-1">Auto (ABR)</option>
+                </select>
+                <div class="status" id="status">Ready</div>
+                <button id="toggle-metrics" class="toggle-metrics">
+                    <i class="fas fa-chart-line"></i>
+                    Show Metrics
+                </button>
+            </div>
+            <div id="error-message" class="error-message"></div>
+            <div class="metrics-panel">
+                <!-- Metrics will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- HLS.js as ES module -->
+    <script type="importmap">
+    {
+        "imports": {
+            "hls.js": "https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.mjs"
+        }
+    }
+    </script>
+
+    <!-- Main Script -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
