@@ -10,21 +10,24 @@ class HlsService {
 
     async fetchAllPlaylists() {
         const playlistURLs = {};
-
+        const codec = PLAYER_CONFIG.codec;
+    
         try {
             // Fetch all playlists for each quality
             for (const quality of PLAYER_CONFIG.qualities) {
                 const response = await fetch(
-                    `http://localhost:8080/api/v1/videos/${PLAYER_CONFIG.courseName}/${PLAYER_CONFIG.chapterName}/${PLAYER_CONFIG.lessonName}/${quality}/playlist`
+                    `http://localhost:8080/api/v1/videos/${PLAYER_CONFIG.courseName}/` +
+                    `${PLAYER_CONFIG.chapterName}/${PLAYER_CONFIG.lessonName}/` +
+                    `${codec}/${quality}/playlist`
                 );
-
+    
                 if (!response.ok) {
                     throw new Error(`Failed to fetch ${quality} playlist: ${response.status}`);
                 }
-
+    
                 playlistURLs[quality] = response.url;
             }
-
+    
             // Create master playlist
             const masterPlaylist = this.createMasterPlaylist(playlistURLs);
             const blob = new Blob([masterPlaylist], { type: 'application/x-mpegURL' });

@@ -1,9 +1,11 @@
 export const PLAYER_CONFIG = {
-    courseName: 'courses_h264',
-    chapterName: 'chapters',
-    lessonName: 'lessons',
-    qualities: ['480p', '720p', '1080p'],
+    courseName: 'one_piece',
+    chapterName: 'ost',
+    lessonName: 'test',
+    codec: 'h264', // Codec default
+    qualities: ['360p', '480p', '720p', '1080p'],
     qualityInfo: {
+        '360p': { bandwidth: 1000000, width: 640, height: 360 },
         '480p': { bandwidth: 2000000, width: 854, height: 480 },
         '720p': { bandwidth: 4000000, width: 1280, height: 720 },
         '1080p': { bandwidth: 8000000, width: 1920, height: 1080 }
