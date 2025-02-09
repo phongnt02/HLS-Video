@@ -1,7 +1,7 @@
 # HLS Video Player with ABR
 A modern HTTP Live Streaming (HLS) video player implementation with Adaptive Bitrate (ABR) capabilities. The system is designed with a layered architecture that provides efficient video streaming and automatic quality adaptation based on network conditions.
 
-![image](https://github.com/user-attachments/assets/3d54c2e7-999d-4b0b-b2bf-af9a947fd10e)
+![image](https://github.com/user-attachments/assets/27c7aec5-b3de-4297-b333-ab5a4b3dd93b)
 
 ## Architecture Overview
 The system is divided into four main layers:
