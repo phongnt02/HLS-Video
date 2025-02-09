@@ -229,16 +229,33 @@ class VideoPlayer {
     // Quality Control Methods
     evaluateQuality() {
         const levels = hlsService.getLevels();
-        if (!levels.length) return;
+        if (!levels?.length) return;
 
         try {
-            const idealLevel = videoMonitoring.calculateIdealLevel(levels);
-            if (hlsService.hls.loadLevel !== idealLevel) {
-                hlsService.setNextLevel(idealLevel);
-                updateStatus(
-                    `Switching to ${levels[idealLevel].height}p (Bandwidth: ${videoMonitoring.getFormattedMetrics().bandwidth.current})`
-                );
+            const idealLevel = videoMonitoring.calculateIdealLevel(levels, this.video);
+            if (idealLevel === undefined || idealLevel === null) return;
+
+            const currentLoadLevel = hlsService.hls.loadLevel;
+            if (currentLoadLevel === idealLevel) return;
+
+            const targetLevel = levels[idealLevel];
+            if (!targetLevel) {
+                console.warn('Invalid level index:', idealLevel);
+                return;
             }
+
+            hlsService.setNextLevel(idealLevel);
+            const metrics = videoMonitoring.getFormattedMetrics();
+            const qualityInfo = metrics.quality.selectorInfo;
+            
+            updateStatus(
+                `Switching to ${targetLevel.height || 'unknown'}p ` +
+                `(Bandwidth: ${metrics.bandwidth.effective}, ` +
+                `Trend: ${qualityInfo.trend}, ` +
+                `Buffer: ${this.video.buffered.length ? 
+                    (this.video.buffered.end(this.video.buffered.length - 1) - 
+                    this.video.currentTime).toFixed(1) : 0}s)`
+            );
         } catch (error) {
             console.warn('Error evaluating quality:', error);
             videoMonitoring.recordError(error);

@@ -56,7 +56,6 @@ export function createHlsEventHandlers(qualitySelector, currentQuality) {
             currentQuality = data.level;
             qualitySelector.value = data.level.toString();
 
-            // Record quality switch in monitoring
             const oldLevel = hlsService.getLevels()[hlsService.hls.loadLevel];
             videoMonitoring.recordQualitySwitch(
                 oldLevel ? oldLevel.height : 'auto',
@@ -66,10 +65,16 @@ export function createHlsEventHandlers(qualitySelector, currentQuality) {
 
         [Hls.Events.FRAG_LOAD_PROGRESS]: (event, data) => {
             if (data.stats) {
-                const downloadDuration = data.stats.loading.end - data.stats.loading.start;
+                const stats = data.stats;
+                const downloadDuration = stats.loading.end - stats.loading.start;
+                const downloadedBytes = stats.loaded;
+                
                 if (downloadDuration > 0) {
-                    const bandwidthBps = (data.stats.loaded * 8) / (downloadDuration / 1000);
-                    videoMonitoring.addBandwidthSample(bandwidthBps);
+                    videoMonitoring.addBandwidthSample(
+                        downloadedBytes, 
+                        downloadDuration,
+                        stats.loading.end
+                    );
                 }
             }
         },
@@ -77,9 +82,14 @@ export function createHlsEventHandlers(qualitySelector, currentQuality) {
         [Hls.Events.FRAG_LOADED]: (event, data) => {
             const stats = data.frag.stats;
             const downloadDuration = stats.loading.end - stats.loading.start;
+            const downloadedBytes = stats.loaded;
+            
             if (downloadDuration > 0) {
-                const bandwidthBps = (stats.loaded * 8) / (downloadDuration / 1000);
-                videoMonitoring.addBandwidthSample(bandwidthBps);
+                videoMonitoring.addBandwidthSample(
+                    downloadedBytes, 
+                    downloadDuration,
+                    stats.loading.end
+                );
             }
         },
 
