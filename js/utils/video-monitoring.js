@@ -1,12 +1,36 @@
 import { PLAYER_CONFIG } from '../constants/player.js';
+import BandwidthCalculator from './bandwidth-calculator.js';
+import QualitySelector from './quality-selector.js';
 
 class VideoMonitoring {
     constructor() {
+        // Initialize bandwidth calculator with config
+        this.bandwidthCalculator = new BandwidthCalculator({
+            windowSize: 3000,
+            minSamples: 3,
+            ewmaFastAlpha: 0.3,
+            ewmaSlowAlpha: 0.1,
+            safetyFactor: PLAYER_CONFIG.bandwidthSafetyFactor || 0.7
+        });
+
+        // Initialize quality selector with config
+        this.qualitySelector = new QualitySelector({
+            minSwitchInterval: 5000,
+            upSwitchThreshold: 1.5,
+            downSwitchThreshold: 0.8,
+            minBufferForUpswitch: 10,
+            criticalBufferLevel: 5,
+            maxConsecutiveSwitches: 2,
+            stabilityPeriod: 30000,
+            trendWindowSize: 5,
+            trendThreshold: 0.1
+        });
+
         this.metrics = {
             bandwidth: {
-                samples: [],
                 current: 0,
-                average: 0,
+                estimate: 0,
+                effectiveRate: 0
             },
             buffering: {
                 count: 0,
@@ -18,13 +42,14 @@ class VideoMonitoring {
                 totalPlayTime: 0,
                 pauseCount: 0,
                 seekCount: 0,
-                seekTime: 0, // Total time spent seeking
+                seekTime: 0,
                 lastSeekStart: null,
             },
             quality: {
                 switches: 0,
                 currentQuality: null,
                 switchHistory: [],
+                selectorDebug: {}
             },
             errors: {
                 count: 0,
@@ -36,21 +61,34 @@ class VideoMonitoring {
         this.lastQualityCheck = Date.now();
     }
 
-    // Bandwidth monitoring
-    addBandwidthSample(bandwidthBps) {
-        this.metrics.bandwidth.samples.push(bandwidthBps);
-        if (this.metrics.bandwidth.samples.length > PLAYER_CONFIG.movingAveragePeriod) {
-            this.metrics.bandwidth.samples.shift();
-        }
+    // Updated bandwidth monitoring using BandwidthCalculator
+    addBandwidthSample(downloadedBytes, durationMs, timestamp = Date.now()) {
+        const estimate = this.bandwidthCalculator.addSample(downloadedBytes, durationMs, timestamp);
+        const effectiveRate = this.bandwidthCalculator.getEffectiveBandwidth();
+        
+        this.metrics.bandwidth = {
+            current: (downloadedBytes * 8) / (durationMs / 1000), // Current sample in bps
+            estimate: estimate,
+            effectiveRate: effectiveRate
+        };
 
-        this.metrics.bandwidth.current = bandwidthBps;
-        this.metrics.bandwidth.average = this.getAverageBandwidth();
-        return this.metrics.bandwidth.average;
+        return effectiveRate;
     }
 
-    getAverageBandwidth() {
-        if (this.metrics.bandwidth.samples.length === 0) return 0;
-        return this.metrics.bandwidth.samples.reduce((a, b) => a + b, 0) / this.metrics.bandwidth.samples.length;
+    // Quality selection using the new QualitySelector
+    calculateIdealLevel(levels, video) {
+        const metrics = {
+            effectiveBandwidth: this.bandwidthCalculator.getEffectiveBandwidth(),
+            bufferLength: video.buffered.length ? 
+                video.buffered.end(video.buffered.length - 1) - video.currentTime : 0,
+            currentTime: video.currentTime,
+            duration: video.duration
+        };
+
+        // Get debug info from quality selector
+        this.metrics.quality.selectorDebug = this.qualitySelector.getDebugInfo();
+
+        return this.qualitySelector.selectQuality(metrics, levels);
     }
 
     // Buffer monitoring
@@ -103,7 +141,7 @@ class VideoMonitoring {
         }
     }
 
-    // Quality monitoring
+    // Quality change monitoring
     recordQualitySwitch(oldQuality, newQuality) {
         this.metrics.quality.switches++;
         this.metrics.quality.currentQuality = newQuality;
@@ -112,6 +150,11 @@ class VideoMonitoring {
             from: oldQuality,
             to: newQuality
         });
+
+        // Keep only recent switches
+        if (this.metrics.quality.switchHistory.length > 10) {
+            this.metrics.quality.switchHistory.shift();
+        }
     }
 
     // Error monitoring
@@ -122,20 +165,11 @@ class VideoMonitoring {
             timestamp: Date.now(),
             error
         });
-    }
 
-    // Helpers for ABR
-    calculateIdealLevel(levels) {
-        const averageBandwidth = this.getAverageBandwidth();
-        let idealLevel = 0;
-
-        for (let i = 0; i < levels.length; i++) {
-            if (levels[i].bitrate < averageBandwidth * PLAYER_CONFIG.bandwidthSafetyFactor) {
-                idealLevel = i;
-            }
+        // Keep only recent errors
+        if (this.metrics.errors.errorHistory.length > 10) {
+            this.metrics.errors.errorHistory.shift();
         }
-
-        return idealLevel;
     }
 
     shouldCheckQuality() {
@@ -147,13 +181,14 @@ class VideoMonitoring {
         return false;
     }
 
-    // Get formatted metrics for UI
+    // Get formatted metrics for UI with enhanced debug info
     getFormattedMetrics() {
         const now = Date.now();
         return {
             bandwidth: {
                 current: `${(this.metrics.bandwidth.current / 1000000).toFixed(2)} Mbps`,
-                average: `${(this.metrics.bandwidth.average / 1000000).toFixed(2)} Mbps`
+                estimate: `${(this.metrics.bandwidth.estimate / 1000000).toFixed(2)} Mbps`,
+                effective: `${(this.metrics.bandwidth.effectiveRate / 1000000).toFixed(2)} Mbps`
             },
             buffering: {
                 count: this.metrics.buffering.count,
@@ -170,23 +205,32 @@ class VideoMonitoring {
                 current: this.metrics.quality.currentQuality,
                 recentSwitches: this.metrics.quality.switchHistory
                     .slice(-3)
-                    .map(s => `${s.from}p → ${s.to}p`)
+                    .map(s => `${s.from}p → ${s.to}p`),
+                selectorInfo: {
+                    trend: this.metrics.quality.selectorDebug.bandwidthTrend,
+                    consecutiveSwitches: this.metrics.quality.selectorDebug.consecutiveSwitches,
+                    lastDirection: this.metrics.quality.selectorDebug.lastSwitchDirection
+                }
             },
             errors: {
                 count: this.metrics.errors.count,
                 recent: this.metrics.errors.errorHistory
                     .slice(-3)
-                    .map(e => e.error.message)
+                    .map(e => e.error.message || e.error)
             }
         };
     }
 
+    // Reset all monitoring state
     reset() {
+        this.bandwidthCalculator.reset();
+        this.qualitySelector.reset();
+        
         this.metrics = {
             bandwidth: {
-                samples: [],
                 current: 0,
-                average: 0
+                estimate: 0,
+                effectiveRate: 0
             },
             buffering: {
                 count: 0,
@@ -204,7 +248,8 @@ class VideoMonitoring {
             quality: {
                 switches: 0,
                 currentQuality: null,
-                switchHistory: []
+                switchHistory: [],
+                selectorDebug: {}
             },
             errors: {
                 count: 0,
@@ -216,4 +261,4 @@ class VideoMonitoring {
     }
 }
 
-export default new VideoMonitoring();
+export default new VideoMonitoring(); // Export singleton instance

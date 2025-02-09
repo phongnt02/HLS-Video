@@ -115,8 +115,12 @@ export function updateMetricsDisplay(metrics) {
                 <h3>Bandwidth</h3>
                 <div class="metric-value">${metrics.bandwidth.current}</div>
                 <div class="metric-subvalue">
-                    <span>Average:</span>
-                    <span>${metrics.bandwidth.average}</span>
+                    <span>Estimated:</span>
+                    <span>${metrics.bandwidth.estimate}</span>
+                </div>
+                <div class="metric-subvalue">
+                    <span>Effective:</span>
+                    <span>${metrics.bandwidth.effective}</span>
                 </div>
             </div>
             
@@ -148,6 +152,14 @@ export function updateMetricsDisplay(metrics) {
                 <div class="metric-subvalue">
                     <span>Current:</span>
                     <span>${metrics.quality.current || 'Auto'}</span>
+                </div>
+                <div class="metric-subvalue">
+                    <span>Trend:</span>
+                    <span>${metrics.quality.selectorInfo.trend}</span>
+                </div>
+                <div class="metric-subvalue">
+                    <span>Consecutive:</span>
+                    <span>${metrics.quality.selectorInfo.consecutiveSwitches}</span>
                 </div>
                 ${switchesHtml}
             </div>
