@@ -34,80 +34,36 @@ class QualitySelector {
 
     selectQuality(metrics, levels) {
         if (!Array.isArray(levels) || levels.length === 0) {
-            return this.state.currentLevel;
+            return this.state.currentLevel; 
         }
-
+    
         const now = Date.now();
-        
-        // Get current playback metrics
-        const {
-            effectiveBandwidth,
-            bufferLength,
-            currentTime,
-            duration
-        } = metrics;
-
-        // Check if we're in a stability period
-        if (now < this.state.stabilityEndTime) {
-            return this.state.currentLevel;
-        }
-
-        // Update bandwidth trend
-        this.updateBandwidthTrend(effectiveBandwidth);
-
+        const {effectiveBandwidth, bufferLength} = metrics;
+    
+        // Log selection criteria
+        console.log('[QualitySelector] Selection criteria:', {
+            bandwidth: effectiveBandwidth,
+            buffer: bufferLength,
+            currentLevel: this.state.currentLevel
+        });
+    
         // Don't switch if we recently switched
         if (now - this.state.lastSwitchTime < this.config.minSwitchInterval) {
             return this.state.currentLevel;
         }
-
-        // Get ideal level based on current conditions
+    
+        // Get ideal level
         const idealLevel = this.calculateIdealLevel(levels, metrics);
-        if (idealLevel === undefined || idealLevel === null) {
-            return this.state.currentLevel;
-        }
-
-        // If no change needed, maintain current level
-        if (idealLevel === this.state.currentLevel) {
-            return this.state.currentLevel;
-        }
-
-        // Determine if this is an up-switch or down-switch
-        const isUpSwitch = idealLevel > this.state.currentLevel;
-
-        // Get target level
-        const targetLevel = levels[idealLevel];
-        if (!targetLevel) {
-            return this.state.currentLevel;
-        }
-
-        // Apply additional checks for up-switching
-        if (isUpSwitch) {
-            if (!this.canUpSwitch(metrics, targetLevel)) {
-                return this.state.currentLevel;
-            }
-        } else {
-            // For down-switching, be more aggressive if buffer is critical
-            if (!this.shouldDownSwitch(metrics, targetLevel)) {
-                return this.state.currentLevel;
-            }
-        }
-
-        // Check for too many consecutive switches
-        if (this.state.lastSwitchDirection === (isUpSwitch ? 'up' : 'down')) {
-            this.state.consecutiveSwitches++;
-            if (this.state.consecutiveSwitches >= this.config.maxConsecutiveSwitches) {
-                // Enter stability period
-                this.state.stabilityEndTime = now + this.config.stabilityPeriod;
-                this.state.consecutiveSwitches = 0;
-                return this.state.currentLevel;
-            }
-        } else {
-            this.state.consecutiveSwitches = 1;
-        }
-
-        // Update state for the switch
-        this.recordQualitySwitch(this.state.currentLevel, idealLevel, now);
         
+        // Don't switch down if current quality is playable
+        if (this.state.currentLevel >= 0 && idealLevel < this.state.currentLevel) {
+            const currentBitrate = levels[this.state.currentLevel].bitrate;
+            if (effectiveBandwidth >= currentBitrate * 0.8) {
+                console.log('[QualitySelector] Maintaining quality - sufficient bandwidth');
+                return this.state.currentLevel;
+            }
+        }
+    
         return idealLevel;
     }
 

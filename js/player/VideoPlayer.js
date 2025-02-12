@@ -15,6 +15,9 @@ import {
     updateBufferProgress
 } from './ui.js';
 
+import videoEnhancement from '../enhancement/videoEnhancement.js';
+import { setupEnhancementEvents } from '../enhancement/enhancementEvents.js';
+
 class VideoPlayer {
     constructor() {
         this.video = document.getElementById('video');
@@ -23,6 +26,27 @@ class VideoPlayer {
         
         initializeUI();
         this.setupEventListeners();
+
+        // Add these properties
+        this.enhancementController = null;
+        this.autoEnhanceCheckbox = document.getElementById('auto-enhance');
+        
+        // Initialize enhancement UI
+        this.initializeEnhancement();
+    }
+
+    initializeEnhancement() {
+        // Initialize enhancement UI
+        videoEnhancement.initialize(document.querySelector('.video-controls'));
+        
+        // Setup auto-enhance toggle
+        if (this.autoEnhanceCheckbox) {
+            this.autoEnhanceCheckbox.addEventListener('change', (e) => {
+                if (this.enhancementController) {
+                    this.enhancementController.setAutoEnhance(e.target.checked);
+                }
+            });
+        }
     }
 
     initializeElements() {
@@ -84,6 +108,9 @@ class VideoPlayer {
                 this.video, 
                 createHlsEventHandlers(this.qualitySelector, this.currentQuality)
             );
+
+            // Set up enhancement events
+            this.enhancementController = setupEnhancementEvents(hls, this.video);
 
             hls.loadSource(masterPlaylistUrl);
             hls.attachMedia(this.video);
@@ -295,7 +322,11 @@ class VideoPlayer {
     destroy() {
         hlsService.destroy();
         videoMonitoring.reset();
+        videoEnhancement.reset();
         // Remove all event listeners
+        if (this.autoEnhanceCheckbox) {
+            this.autoEnhanceCheckbox.removeEventListener('change');
+        }
         document.removeEventListener('keydown', this.handleKeyboard);
         clearInterval(this.qualityCheckInterval);
     }

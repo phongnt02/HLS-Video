@@ -47,7 +47,7 @@ class VideoMonitoring {
             },
             quality: {
                 switches: 0,
-                currentQuality: null,
+                currentQuality: -1,
                 switchHistory: [],
                 selectorDebug: {}
             },
@@ -77,18 +77,45 @@ class VideoMonitoring {
 
     // Quality selection using the new QualitySelector
     calculateIdealLevel(levels, video) {
-        const metrics = {
-            effectiveBandwidth: this.bandwidthCalculator.getEffectiveBandwidth(),
-            bufferLength: video.buffered.length ? 
-                video.buffered.end(video.buffered.length - 1) - video.currentTime : 0,
-            currentTime: video.currentTime,
-            duration: video.duration
-        };
+        if (!levels?.length) return;
 
-        // Get debug info from quality selector
-        this.metrics.quality.selectorDebug = this.qualitySelector.getDebugInfo();
+        try {
+            const metrics = {
+                effectiveBandwidth: this.bandwidthCalculator.getEffectiveBandwidth(),
+                bufferLength: video.buffered.length ? 
+                    video.buffered.end(video.buffered.length - 1) - video.currentTime : 0,
+                currentTime: video.currentTime,
+                duration: video.duration
+            };
 
-        return this.qualitySelector.selectQuality(metrics, levels);
+            console.log('[VideoMonitoring] Bandwidth metrics:', {
+                effectiveBandwidth: metrics.effectiveBandwidth,
+                bufferLength: metrics.bufferLength,
+                currentLevel: this.metrics.quality.currentQuality // Log index không phải resolution
+            });
+
+            // Nếu bandwidth ok và buffer đủ, giữ nguyên level hiện tại
+            if (this.metrics.quality.currentQuality >= 0 && 
+                levels[this.metrics.quality.currentQuality] &&
+                metrics.effectiveBandwidth >= levels[this.metrics.quality.currentQuality].bitrate * 0.8 &&
+                metrics.bufferLength > 10) {
+                return this.metrics.quality.currentQuality;
+            }
+
+            // Tìm level cao nhất mà bandwidth cho phép
+            let idealLevel = levels.length - 1;
+            while (idealLevel > 0) {
+                if (levels[idealLevel].bitrate <= metrics.effectiveBandwidth) {
+                    break;
+                }
+                idealLevel--;
+            }
+
+            return idealLevel;
+        } catch (error) {
+            console.warn('Error evaluating quality:', error);
+            return this.metrics.quality.currentQuality || 0;
+        }
     }
 
     // Buffer monitoring
@@ -142,19 +169,16 @@ class VideoMonitoring {
     }
 
     // Quality change monitoring
-    recordQualitySwitch(oldQuality, newQuality) {
+    recordQualitySwitch(oldLevel, newLevel) {
         this.metrics.quality.switches++;
-        this.metrics.quality.currentQuality = newQuality;
+        this.metrics.quality.currentQuality = newLevel; // Lưu index
         this.metrics.quality.switchHistory.push({
             timestamp: Date.now(),
-            from: oldQuality,
-            to: newQuality
+            from: oldLevel,
+            to: newLevel,
+            fromHeight: levels[oldLevel]?.height,
+            toHeight: levels[newLevel]?.height
         });
-
-        // Keep only recent switches
-        if (this.metrics.quality.switchHistory.length > 10) {
-            this.metrics.quality.switchHistory.shift();
-        }
     }
 
     // Error monitoring

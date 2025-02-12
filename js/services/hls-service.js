@@ -16,7 +16,7 @@ class HlsService {
             // Fetch all playlists for each quality
             for (const quality of PLAYER_CONFIG.qualities) {
                 const response = await fetch(
-                    `http://localhost:8080/api/v1/videos/${PLAYER_CONFIG.courseName}/` +
+                    `http://13.212.212.207/api/v1/videos/${PLAYER_CONFIG.courseName}/` +
                     `${PLAYER_CONFIG.chapterName}/${PLAYER_CONFIG.lessonName}/` +
                     `${codec}/${quality}/playlist`
                 );

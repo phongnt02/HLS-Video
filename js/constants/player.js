@@ -1,5 +1,5 @@
 export const PLAYER_CONFIG = {
-    courseName: 'one_piece',
+    courseName: 'learning',
     chapterName: 'ost',
     lessonName: 'test',
     codec: 'h264', // Codec default

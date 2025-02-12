@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="styles/utils.css">
     <link rel="stylesheet" href="styles/components/player.css">
     <link rel="stylesheet" href="styles/components/controls.css">
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/ort.min.js"></script>
 </head>
 <body>
     <div class="player-container">
@@ -64,6 +65,9 @@
                     </div>
 
                     <div class="controls-right">
+                        <button class="enhance-button hidden" id="enhance-button">
+                            Enhance AI
+                        </button>
                         <button class="control-button" id="pip-button" title="Picture in Picture">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
@@ -88,6 +92,11 @@
                 </button>
             </div>
             <div id="error-message" class="error-message"></div>
+
+            <div class="enhancement-status">
+                <div class="enhancement-message"></div>
+            </div>
+
             <div class="metrics-panel">
                 <!-- Metrics will be populated here -->
             </div>

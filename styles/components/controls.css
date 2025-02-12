@@ -190,3 +190,57 @@
         transform: translate(-50%, 0);
     }
 }
+
+.enhance-button {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    margin-right: 10px;
+    transition: background-color 0.2s ease;
+}
+
+.enhance-button:hover {
+    background-color: #1d4ed8;
+}
+
+.enhance-button:active {
+    background-color: #1e40af;
+}
+
+.enhance-button.hidden {
+    display: none;
+}
+
+.enhance-button.enhancing {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+/* Enhancement Status */
+.enhancement-status {
+    display: none;
+    background-color: rgba(37, 99, 235, 0.1);
+    border-left: 4px solid #2563eb;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.enhancement-status.visible {
+    display: block;
+}
+
+.enhancement-message {
+    color: #1e40af;
+    font-size: 16px;
+    line-height: 1.4;
+}
+.enhance-button.active {
+    background-color: #4CAF50;
+    color: white;
+}
